@@ -1,0 +1,248 @@
+{
+  "info": {
+    "name": "CS 493 — Businesses API",
+    "_postman_id": "b8f1a5f2-2a3b-4f8b-9d2a-1c0a2b3d4e5f",
+    "description": "Automated grading collection for the CS 493 Businesses REST API assignment. Each request asserts both HTTP status code and response shape against the assignment rubric.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000"
+    },
+    {
+      "key": "created_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Rubric 1 — POST /businesses creates and returns 201",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/businesses",
+          "host": ["{{base_url}}"],
+          "path": ["businesses"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Test Cafe\",\n  \"address\": \"100 Test Ave, Corvallis, OR\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test('Response shape has id, name, address', function () {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json).to.have.property('id');",
+              "    pm.expect(json.id).to.be.a('number');",
+              "    pm.expect(json).to.have.property('name', 'Test Cafe');",
+              "    pm.expect(json).to.have.property('address', '100 Test Ave, Corvallis, OR');",
+              "    pm.collectionVariables.set('created_id', String(json.id));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rubric 2 — GET /businesses paginated",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/businesses?page=1&limit=3",
+          "host": ["{{base_url}}"],
+          "path": ["businesses"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "3" }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response is paginated with businesses, next, total', function () {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json).to.have.property('businesses');",
+              "    pm.expect(json.businesses).to.be.an('array');",
+              "    pm.expect(json.businesses.length).to.be.at.most(3);",
+              "    pm.expect(json).to.have.property('total');",
+              "    pm.expect(json.total).to.be.a('number');",
+              "    pm.expect(json).to.have.property('next');",
+              "    if (json.total > 3) {",
+              "        pm.expect(json.next).to.be.a('string');",
+              "        pm.expect(json.next).to.include('page=2');",
+              "        pm.expect(json.next).to.include('limit=3');",
+              "    }",
+              "});",
+              "pm.test('Each business has id, name, address', function () {",
+              "    const json = pm.response.json();",
+              "    json.businesses.forEach(function (b) {",
+              "        pm.expect(b).to.have.property('id');",
+              "        pm.expect(b).to.have.property('name');",
+              "        pm.expect(b).to.have.property('address');",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rubric 3 — GET /businesses/:id returns correct shape",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/businesses/{{created_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["businesses", "{{created_id}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response shape matches business object', function () {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json).to.have.property('id');",
+              "    pm.expect(String(json.id)).to.eql(pm.collectionVariables.get('created_id'));",
+              "    pm.expect(json).to.have.property('name');",
+              "    pm.expect(json.name).to.be.a('string');",
+              "    pm.expect(json).to.have.property('address');",
+              "    pm.expect(json.address).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rubric 4 — DELETE works and resource is gone",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/businesses/{{created_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["businesses", "{{created_id}}"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 204', function () {",
+              "    pm.response.to.have.status(204);",
+              "});",
+              "pm.test('Follow-up GET returns 404 (resource is gone)', function (done) {",
+              "    const id = pm.collectionVariables.get('created_id');",
+              "    pm.sendRequest({",
+              "        url: pm.variables.get('base_url') + '/businesses/' + id,",
+              "        method: 'GET'",
+              "    }, function (err, res) {",
+              "        pm.expect(err).to.be.null;",
+              "        pm.expect(res).to.have.property('code', 404);",
+              "        done();",
+              "    });",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rubric 5 — Proper 404 on missing resource",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/businesses/999999",
+          "host": ["{{base_url}}"],
+          "path": ["businesses", "999999"]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 404', function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "pm.test('Response is JSON with an error field', function () {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json).to.be.an('object');",
+              "    pm.expect(json).to.have.property('error');",
+              "    pm.expect(json.error).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Rubric 6 — Proper 400 on invalid POST body",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/businesses",
+          "host": ["{{base_url}}"],
+          "path": ["businesses"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 400', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "pm.test('Response describes the validation error', function () {",
+              "    const json = pm.response.json();",
+              "    pm.expect(json).to.be.an('object');",
+              "    pm.expect(json).to.have.property('error');",
+              "    pm.expect(json.error).to.be.a('string');",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+anthropic
+gitpython
+requests
+flask
+flask-cors
+rich
